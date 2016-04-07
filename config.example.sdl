@@ -1,5 +1,10 @@
-// Copy this file to "config.sdl" and then edit.
+// Copy this file to "config.sdl" and then edit as needed.
 
 name "foobar"
-address "192.168.1.105" "127.0.0.1" "::1"
+address "127.0.0.1" "::1"
 port 8080
+
+// Generate this value on linux via:
+// $ echo -n 'really long password of random characters' | sha256sum
+// WARNING! Do not leave this as default!
+pass-hash-sha256 "2f23bbf01daa80f8b05facb1c69ae2dd71ed21b24830aa2a7932464779743574"
