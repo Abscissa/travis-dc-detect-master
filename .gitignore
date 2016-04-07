@@ -1,0 +1,8 @@
+.dub
+dub.selections.json
+docs.json
+__dummy.html
+*.o
+*.obj
+/config.sdl
+/travis-dc-detect-master

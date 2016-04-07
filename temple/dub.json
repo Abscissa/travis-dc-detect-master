@@ -1,0 +1,46 @@
+{
+	"name": "temple",
+	"description": "Embedded D, Compile Time Template Engine (Vibe.d Compatible)",
+	"copyright": "Copyright © 2013, Dylan Knutson",
+	"license": "BSL-1.0",
+	"authors":
+	[
+		"Dylan Knutson"
+	],
+	"dependencies": {
+		"vibe-d": {
+			"version": ">=0.7.21",
+			"optional": true
+		}
+	},
+
+	"targetType": "library",
+	"ignoredFiles": ["source/app.d"],
+
+	"configurations": [
+		{
+			"name": "lib",
+			"targetType": "library"
+		},
+
+		{
+			"name": "unittest",
+			"dependencies": {},
+			"targetType": "executable",
+			"mainSourceFile": "src/app.d",
+			"versions": ["TempleUnittest", "VibeCustomMain"],
+			"stringImportPaths": ["test"]
+		},
+
+		{
+			"name": "unittest-vibed",
+			"dependencies": {
+				"vibe-d": ">=0.7.21"
+			},
+			"targetType": "executable",
+			"mainSourceFile": "src/app.d",
+			"versions": ["TempleUnittest", "VibeCustomMain"],
+			"stringImportPaths": ["test"]
+		}
+	]
+}

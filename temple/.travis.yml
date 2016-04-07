@@ -1,0 +1,14 @@
+language: d
+sudo: false
+
+d:
+  - dmd
+  - ldc
+  - gdc
+
+install:
+  - $DC | head -3
+
+script:
+  - export PATH=$PATH:~/bin/
+  - dub --build=unittest --config=unittest --compiler=$DC -v

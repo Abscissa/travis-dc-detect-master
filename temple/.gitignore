@@ -1,0 +1,15 @@
+ideas.txt
+dub.selections.json
+*.sublime-project
+*.sublime-workspace
+__test*
+*.exe
+*.obj
+*.lib
+*.o
+*.a
+*.sublime-*
+*.lst
+/temple
+/.dub
+.DS_Store
