@@ -1,6 +1,8 @@
 import std.conv;
 
-import vibe.d;
+import vibe.vibe;
+import vibe.core.connectionpool;
+import mysql.db;
 import temple;
 import sdlang;
 
@@ -10,18 +12,99 @@ struct Config
 	string[] address = ["127.0.0.1", "::1"];
 	ushort port = 8080;
 	string passHash; // SHA256
+
+	string dbHost;
+	ushort dbPort;
+	string dbName;
+	string dbUser;
+	string dbPass;
+	string dbAdminUser;
+	string dbAdminPass;
+	string dbAdminNewUserHost;
 }
 Config config;
 
 immutable passFieldName = "REPORTING_SERVER_PASS";
 
-shared static this()
+immutable dbInitUserSql = "
+DROP USER IF EXISTS '$DB_USER'@'$DB_ADMIN_NEW_USER_HOST';
+CREATE USER '$DB_USER'@'$DB_ADMIN_NEW_USER_HOST' IDENTIFIED BY '$DB_PASS';
+GRANT SELECT,INSERT,UPDATE,DELETE ON `$DB_NAME`.* TO '$DB_USER'@'$DB_ADMIN_NEW_USER_HOST';
+FLUSH PRIVILEGES;
+";
+ 
+immutable dbInitSchemaSql = "
+DROP DATABASE IF EXISTS `$DB_NAME`;
+CREATE DATABASE `$DB_NAME`;
+
+DROP TABLE IF EXISTS `$DB_NAME`.`compilers`;
+CREATE TABLE `$DB_NAME`.`compilers` (
+	`type`            VARCHAR(255) NOT NULL,
+	`typeRaw`         VARCHAR(255) NOT NULL,
+	`compilerVersion` VARCHAR(255) NOT NULL,
+	`frontEndVersion` VARCHAR(255) NOT NULL,
+	`llvmVersion`     VARCHAR(255) NOT NULL,
+	`gccVersion`      VARCHAR(255) NOT NULL,
+	`updated`         DATETIME     NOT NULL,
+	`versionHeader`   VARCHAR(255) NOT NULL,
+	`helpStatus`      INT UNSIGNED NOT NULL,
+	`helpOutput`      TEXT         NOT NULL,
+	PRIMARY KEY (`type`, `compilerVersion`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+";
+ 
+immutable dbTroubleshootMsg =
+`Please try the following:
+
+1. Note that only MySQL/MariaDB is supported right now.
+
+2. Make sure 'config.sdl' and your DB are set up correctly.
+   See 'config.example.sdl' for details.
+
+3. Make sure your DB user has the following permissions:
+   SELECT, INSERT, UPDATE, DELETE
+
+   Additionally, permissions for CREATE TABLE and DROP TABLE are needed for
+   initial setup of the DB via --init-db (then they can be revoked if
+   you wish).
+
+4. Your DB user must use MySQL's new-style long password hash, not the
+   very-old-style short password hash. (Just reset the DB user's password
+   to be sure. It will use the new-style automatically.)
+
+5. Run this program with the --init-db switch to create the needed DB tables
+   (THIS WILL DESTROY ALL DATA!)
+`;
+
+void main()
 {
+	bool shouldInitDB = false;
+	readOption("init-db", &shouldInitDB, "(Re-)Initialize the database and exit (WARNING! THIS WILL DESTROY ALL DATA!");
+
+	// returns false if a help screen has been requested and displayed (--help)
+	if (!finalizeCommandLineOptions())
+		return;
+
 	auto sdlConfig = parseFile("config.sdl");
 	if("name"    in sdlConfig.tags) config.name    = sdlConfig.tags["name"   ][0].values[0].get!string;
 	if("address" in sdlConfig.tags) config.address = sdlConfig.tags["address"][0].values.map!(a => a.get!string).array;
 	if("port"    in sdlConfig.tags) config.port    = sdlConfig.tags["port"   ][0].values[0].get!int.to!ushort;
 	if("pass-hash-sha256" in sdlConfig.tags) config.passHash = sdlConfig.tags["pass-hash-sha256"][0].values[0].get!string;
+
+	config.dbHost      = sdlConfig.tags["db-host"      ][0].values[0].get!string;
+	config.dbPort      = sdlConfig.tags["db-port"      ][0].values[0].get!int.to!ushort;
+	config.dbName      = sdlConfig.tags["db-name"      ][0].values[0].get!string;
+	config.dbUser      = sdlConfig.tags["db-user"      ][0].values[0].get!string;
+	config.dbPass      = sdlConfig.tags["db-pass"      ][0].values[0].get!string;
+	config.dbAdminUser = sdlConfig.tags["db-admin-user"][0].values[0].get!string;
+	config.dbAdminPass = sdlConfig.tags["db-admin-pass"][0].values[0].get!string;
+	config.dbAdminNewUserHost = sdlConfig.tags["db-admin-new-user-host"][0].values[0].get!string;
+
+	if(shouldInitDB)
+	{
+		initDB();
+		return;
+	}
 
 	// the router will match incoming HTTP requests to the proper routes
 	auto router = new URLRouter();
@@ -38,6 +121,55 @@ shared static this()
 	settings.bindAddresses = config.address;
 	listenHTTP(settings, router);
 	logInfo(text("Please open http://", config.address[0], ":", config.port, "/ in your browser."));
+
+	lowerPrivileges();
+	auto dbConn = openDB();
+	runEventLoop();
+}
+
+void initDB()
+{
+	scope(failure)
+		logError("There was an error initializing the database.\n"~dbTroubleshootMsg);
+
+	auto dbConn = openDBAdmin();
+	auto db = Command(dbConn);
+
+	void doSql(string rawSql)
+	{
+		auto processedSql = rawSql
+			.replace("$DB_NAME", config.dbName)
+			.replace("$DB_USER", config.dbUser)
+			.replace("$DB_PASS", config.dbPass)
+			.replace("$DB_ADMIN_NEW_USER_HOST", config.dbAdminNewUserHost);
+			
+		auto sqlInitStatements = processedSql.split(";");
+		foreach(sql; sqlInitStatements)
+		{
+			sql = sql.strip();
+			if(sql != "")
+			{
+				//logInfo("%s;", sql);
+				db.sql = sql;
+				ulong rowsAffected;
+				db.execSQL(rowsAffected);
+			}
+		}
+	}
+
+	try
+		doSql(dbInitUserSql);
+	catch(MySQLException e)
+	{
+		logInfo("%s",
+			"Unable to auto-init a limited user account. Skipping... "~
+			"(Received error: "~e.msg~")"
+		);
+	}
+
+	doSql(dbInitSchemaSql);
+
+	logInfo("Initializing DB done.");
 }
 
 void index(HTTPServerRequest req, HTTPServerResponse res)
@@ -76,9 +208,10 @@ void compiler(HTTPServerRequest req, HTTPServerResponse res)
 	if(key != passFieldName)
 		logInfo(text("  ", key, ": ", val));
 
-	res.writeBody("Ok, pretending to add new compiler\n");
 //	res.contentType = "text/html; charset=UTF-8";
-
+	res.writeBody("Ok, pretending to add new compiler\n");
+	
+	auto dbConn = openDB();
 }
 
 /++
@@ -97,4 +230,33 @@ bool lengthConstantEquals(const ubyte[] a, const ubyte[] b)
 		diff |= a[i] ^ b[i];
 
 	return diff == 0;
+}
+
+LockedConnection!Connection openDB()
+{
+	return openDBFor(config.dbUser, config.dbPass, config.dbName);
+}
+
+LockedConnection!Connection openDBAdmin()
+{
+	return openDBFor(config.dbAdminUser, config.dbAdminPass, null);
+}
+
+private MysqlDB dbPool;
+private LockedConnection!Connection openDBFor(string dbUser, string dbPass, string dbName)
+{
+	if(!dbPool)
+	{
+		dbPool = new MysqlDB(
+			config.dbHost, dbUser, dbPass,
+			dbName, config.dbPort
+		);
+	}
+
+	auto dbConn = dbPool.lockConnection();
+
+	if(dbConn.closed)
+		dbConn.reconnect();
+	
+	return dbConn;
 }

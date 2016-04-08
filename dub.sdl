@@ -1,9 +1,12 @@
 name "travis-dc-detect-master"
-description "A minimal D application."
+description "Travis D Compiler Detect: Master: Web-based tool that detects and displays version information of the D compilers supported on travis-ci."
 copyright "Copyright © 2016, nick"
 authors "nick"
-dependency "vibe-d" version="0.7.28"
-dependency "sdlang-d" version="0.9.4"
-dependency "temple" path="temple"
-versions "VibeDefaultMain"
+
+dependency "vibe-d"       version="0.7.28"
+dependency "mysql-native" version="0.1.4"
+dependency "sdlang-d"     version="0.9.4"
+dependency "temple"       path="temple"
+
+versions "VibeIdleCollect"
 stringImportPaths "templates"

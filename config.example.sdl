@@ -1,6 +1,8 @@
 // Copy this file to "config.sdl" and then edit as needed.
 
 name "foobar"
+
+// IP(s) and port nummber to bind to:
 address "127.0.0.1" "::1"
 port 8080
 
@@ -8,3 +10,68 @@ port 8080
 // $ echo -n 'really long password of random characters' | sha256sum
 // WARNING! Do not leave this as default!
 pass-hash-sha256 "2f23bbf01daa80f8b05facb1c69ae2dd71ed21b24830aa2a7932464779743574"
+
+// This must be a MySQL or MariaDB database.
+// The user should have SELECT/INSERT/UPDATE/DELETE access to the
+// database specified in db-name.
+//
+// If your DB server is new (at least MySQL 5.7.8 or MariaDB 10.1.3), and
+// your db-admin-user (down further below) has sufficient priveledges, then
+// this limited user account can be automatically created for you by
+// using --init-db. Otherwise, you can create it like this:
+// $ mysql -u your-root-account-name -p
+// > CREATE USER 'travis-dc-detect-user'@'%' IDENTIFIED BY 'some password';
+// > GRANT SELECT,INSERT,UPDATE,DELETE ON `travis-dc-detect`.* TO 'travis-dc-detect-user'@'%';
+// > FLUSH PRIVILEGES;
+// > exit
+// 
+db-host "localhost"
+db-port 3306
+db-name "travis-dc-detect"
+db-user "travis-dc-detect-user"
+db-pass "password"
+
+// This user will be used for (re)initializing the database via
+// $ travis-dc-detect-master --init-db
+//
+// The simplest option is for this to be your DB's root account. Then
+// this program can completely set up it's own database and a limited user
+// account (if your MySQL/MariaDB server is new enough - MySQL 5.7.8 or
+// MariaDB 10.1.3) based on the settings in this config file, with no manual
+// databaase work needed on your part. Just run this program once with
+// --init-db, and you're done.
+// 
+// But if you do use your database's root here, make sure this file's
+// permissions are secure BEFORE adding your password to this file.
+// And you may want to remove the password from this file after you're done
+// with --init-db.
+//
+// If you're not using root:
+// -------------------------
+// This user should have CREATE and DROP permissions to the
+// database specified in db-name above. Once the DB is initialized,
+// you may remove this user from the DB if desired. Or this could be the same
+// limited user account as above, and you can simply revoke the extra
+// no-longer-needed permissions after running --init-db.
+//
+// To create a limited account sufficient for this, do this:
+// $ mysql -u your-root-account-name -p
+// > CREATE USER 'travis-dc-detect-admin'@'localhost' IDENTIFIED BY 'some password';
+// > GRANT ALL ON `travis-dc-detect`.* TO 'travis-dc-detect-admin'@'localhost' WITH GRANT OPTION;
+// > FLUSH PRIVILEGES;
+// > exit
+//
+db-admin-user "travis-dc-detect-admin"
+db-admin-pass "password"
+
+// If db-user doesn't exist, and db-admin-user has sufficient priveledges,
+// --init-db will automatically try to create db-user with appropriate
+// minimum priveledges. (This requires your DB server to be at least
+// MySQL 5.7.8 or MariaDB 10.1.3.)
+//
+// This setting allows you to change the host form which the new restricted
+// user is allowed to connect. As usual for MySQL/MariaDB, "%" means
+// "allow from anywhere", which is the most compatible. If your database
+// is running on the same machine as this program, you can change this
+// to "localhost" before using --init-db for inceased security.
+db-admin-new-user-host "%"
