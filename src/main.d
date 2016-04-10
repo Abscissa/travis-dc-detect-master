@@ -1,4 +1,5 @@
 import std.conv;
+import std.datetime;
 
 import vibe.vibe;
 import vibe.core.connectionpool;
@@ -208,10 +209,68 @@ void compiler(HTTPServerRequest req, HTTPServerResponse res)
 	if(key != passFieldName)
 		logInfo(text("  ", key, ": ", val));
 
-//	res.contentType = "text/html; charset=UTF-8";
-	res.writeBody("Ok, pretending to add new compiler\n");
+	logInfo("Ok, adding new compiler\n");
 	
 	auto dbConn = openDB();
+	auto cmd = Command(dbConn);
+	cmd.sql = "
+		INSERT INTO `compilers` (
+			`type`, `typeRaw`, `compilerVersion`, `frontEndVersion`, `llvmVersion`,
+			`gccVersion`, `updated`, `versionHeader`, `helpStatus`, `helpOutput`
+		) VALUES (
+			?, ?, ?, ?, ?,
+			?, ?, ?, ?, ?
+		)
+	";
+	cmd.prepare();
+
+	string getForm(string name)
+	{
+		if(auto pVal = name in req.form)
+			return *pVal;
+		
+		auto msg = "Missing form value: "~name;
+		logError(msg);
+		throw new Exception(msg);
+	}
+
+	auto DC_TYPE              = getForm("DC_TYPE");
+	auto DC_TYPE_RAW          = getForm("DC_TYPE_RAW");
+	auto DC_COMPILER_VERSION  = getForm("DC_COMPILER_VERSION");
+	auto DC_FRONT_END_VERSION = getForm("DC_FRONT_END_VERSION");
+	auto DC_LLVM_VERSION      = getForm("DC_LLVM_VERSION");
+	auto DC_GCC_VERSION       = getForm("DC_GCC_VERSION");
+	auto DC_VERSION_HEADER    = getForm("DC_VERSION_HEADER");
+	auto DC_HELP_STATUS       = getForm("DC_HELP_STATUS").to!ubyte;
+	auto DC_HELP_OUTPUT       = getForm("DC_HELP_OUTPUT");
+	auto updated = cast(DateTime) Clock.currTime;
+	cmd.bindParameter(DC_TYPE,              0);
+	cmd.bindParameter(DC_TYPE_RAW,          1);
+	cmd.bindParameter(DC_COMPILER_VERSION,  2);
+	cmd.bindParameter(DC_FRONT_END_VERSION, 3);
+	cmd.bindParameter(DC_LLVM_VERSION,      4);
+	cmd.bindParameter(DC_GCC_VERSION,       5);
+	cmd.bindParameter(updated,              6);
+	cmd.bindParameter(DC_VERSION_HEADER,    7);
+	cmd.bindParameter(DC_HELP_STATUS,       8);
+	cmd.bindParameter(DC_HELP_OUTPUT,       9);
+
+	ulong rowsAffected;
+	try
+		cmd.execPrepared(rowsAffected);
+	catch(MySQLException e)
+	{
+		if(e.msg.canFind("Duplicate entry"))
+		{
+			res.writeBody("Compiler already in DB. Doing nothing.\n");
+			return;
+		}
+		
+		throw e;
+	}
+
+//	res.contentType = "text/html; charset=UTF-8";
+	res.writeBody("Ok, added new compiler\n");
 }
 
 /++
