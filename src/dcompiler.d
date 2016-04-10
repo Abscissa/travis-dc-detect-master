@@ -1,5 +1,7 @@
 module dcompiler;
 
+import std.datetime;
+
 struct DCompiler
 {
 	string type;
@@ -11,6 +13,8 @@ struct DCompiler
 	string llvmVersion;
 	string gccVersion;
 
-	string fullCompilerOutput;
-	int fullCompilerStatus;
+	string helpOutput;
+	int helpStatus;
+
+	DateTime updated;
 }

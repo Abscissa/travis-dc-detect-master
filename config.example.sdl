@@ -1,7 +1,5 @@
 // Copy this file to "config.sdl" and then edit as needed.
 
-name "foobar"
-
 // IP(s) and port nummber to bind to:
 address "127.0.0.1" "::1"
 port 8080
