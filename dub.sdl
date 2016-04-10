@@ -10,3 +10,4 @@ dependency "temple"       path="temple"
 
 versions "VibeIdleCollect"
 stringImportPaths "templates"
+targetPath "bin"

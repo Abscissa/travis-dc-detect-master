@@ -1,2 +1,33 @@
-Hello, world!
+% import dcompiler;
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>D Compilers on Travis-CI</title>
+</head>
+
+<body>
+<p>
+Hello, world! This is generated.
 And hello, <%= var.name %>!
+</p>
+
+<table>
+	<tr>
+		<th>Type</th>
+		<th>Type (raw)</th>
+		<th>Version</th>
+		<th>Front End</th>
+	</tr>
+	<% foreach(i, dc; var.dcompilers.get!(DCompiler[])) { %>
+	<tr>
+		<td><%= dc.type %></td>
+		<td><%= dc.typeRaw %></td>
+		<td>v<%= dc.compilerVersion %></td>
+		<td>v<%= dc.frontEndVersion %></td>
+	</tr>
+	<% } %>
+</table>
+</body>
+
+</html> 

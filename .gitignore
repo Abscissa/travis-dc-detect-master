@@ -6,3 +6,5 @@ __dummy.html
 *.obj
 /config.sdl
 /travis-dc-detect-master
+/bin
+/public/index.html

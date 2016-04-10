@@ -1,11 +1,18 @@
 import std.conv;
 import std.datetime;
+import std.file;
+import std.path;
+import std.stdio;
 
 import vibe.vibe;
 import vibe.core.connectionpool;
 import mysql.db;
 import temple;
 import sdlang;
+
+import dcompiler;
+
+alias write = std.stdio.write;
 
 struct Config
 {
@@ -109,9 +116,9 @@ void main()
 
 	// the router will match incoming HTTP requests to the proper routes
 	auto router = new URLRouter();
-	router.get("/", &index);
+	//router.get("/", &index);
 	//router.get("/compiler", &compiler);
-	router.post("/compiler", &compiler);
+	router.post("/compiler", &postCompiler);
 	// registers each method of WebInterface in the router
 	//router.registerWebInterface(new WebInterface);
 	// match incoming requests to files in the public/ folder
@@ -173,16 +180,6 @@ void initDB()
 	logInfo("Initializing DB done.");
 }
 
-void index(HTTPServerRequest req, HTTPServerResponse res)
-{
-	res.contentType = "text/html; charset=UTF-8";
-
-	auto context = new TempleContext();
-	context.name = config.name;
-
-	res.renderTempleFile!(`index.html`)(context);
-}
-
 bool checkPassword(HTTPServerRequest req, HTTPServerResponse res)
 {
 	import std.digest.sha;
@@ -199,7 +196,7 @@ bool checkPassword(HTTPServerRequest req, HTTPServerResponse res)
 	return false;
 }
 
-void compiler(HTTPServerRequest req, HTTPServerResponse res)
+void postCompiler(HTTPServerRequest req, HTTPServerResponse res)
 {
 	if(!checkPassword(req, res))
 		return;
@@ -211,63 +208,129 @@ void compiler(HTTPServerRequest req, HTTPServerResponse res)
 
 	logInfo("Ok, adding new compiler\n");
 	
+	// Add compiler info to DB, if not already there.
 	auto dbConn = openDB();
+	{
+		auto cmd = Command(dbConn);
+		cmd.sql = "
+			INSERT INTO `compilers` (
+				`type`, `typeRaw`, `compilerVersion`, `frontEndVersion`, `llvmVersion`,
+				`gccVersion`, `updated`, `versionHeader`, `helpStatus`, `helpOutput`
+			) VALUES (
+				?, ?, ?, ?, ?,
+				?, ?, ?, ?, ?
+			)
+		";
+		cmd.prepare();
+
+		string getForm(string name)
+		{
+			if(auto pVal = name in req.form)
+				return *pVal;
+			
+			auto msg = "Missing form value: "~name;
+			logError(msg);
+			throw new Exception(msg);
+		}
+
+		auto DC_TYPE              = getForm("DC_TYPE");
+		auto DC_TYPE_RAW          = getForm("DC_TYPE_RAW");
+		auto DC_COMPILER_VERSION  = getForm("DC_COMPILER_VERSION");
+		auto DC_FRONT_END_VERSION = getForm("DC_FRONT_END_VERSION");
+		auto DC_LLVM_VERSION      = getForm("DC_LLVM_VERSION");
+		auto DC_GCC_VERSION       = getForm("DC_GCC_VERSION");
+		auto DC_VERSION_HEADER    = getForm("DC_VERSION_HEADER");
+		auto DC_HELP_STATUS       = getForm("DC_HELP_STATUS").to!ubyte;
+		auto DC_HELP_OUTPUT       = getForm("DC_HELP_OUTPUT");
+		auto updated = cast(DateTime) Clock.currTime;
+		cmd.bindParameter(DC_TYPE,              0);
+		cmd.bindParameter(DC_TYPE_RAW,          1);
+		cmd.bindParameter(DC_COMPILER_VERSION,  2);
+		cmd.bindParameter(DC_FRONT_END_VERSION, 3);
+		cmd.bindParameter(DC_LLVM_VERSION,      4);
+		cmd.bindParameter(DC_GCC_VERSION,       5);
+		cmd.bindParameter(updated,              6);
+		cmd.bindParameter(DC_VERSION_HEADER,    7);
+		cmd.bindParameter(DC_HELP_STATUS,       8);
+		cmd.bindParameter(DC_HELP_OUTPUT,       9);
+
+		ulong rowsAffected;
+		try
+			cmd.execPrepared(rowsAffected);
+		catch(MySQLException e)
+		{
+			if(e.msg.canFind("Duplicate entry"))
+			{
+				res.writeBody("Compiler already in DB. Doing nothing.\n");
+				return;
+			}
+			
+			throw e;
+		}
+	}
+
+	// Pre-generate HTML page
+	auto context = new TempleContext();
+	context.name = config.name;
 	auto cmd = Command(dbConn);
 	cmd.sql = "
-		INSERT INTO `compilers` (
+		SELECT
 			`type`, `typeRaw`, `compilerVersion`, `frontEndVersion`, `llvmVersion`,
 			`gccVersion`, `updated`, `versionHeader`, `helpStatus`, `helpOutput`
-		) VALUES (
-			?, ?, ?, ?, ?,
-			?, ?, ?, ?, ?
-		)
+		FROM `compilers`
+		ORDER BY `typeRaw` ASC, `type` ASC, `compilerVersion` ASC;
 	";
-	cmd.prepare();
-
-	string getForm(string name)
+	auto rows = cmd.execSQLSequence();
+	DCompiler[] dcompilers;
+	foreach(row; rows)
 	{
-		if(auto pVal = name in req.form)
-			return *pVal;
-		
-		auto msg = "Missing form value: "~name;
-		logError(msg);
-		throw new Exception(msg);
+		DCompiler dc;
+		dc.type            = row[0].get!string();
+		dc.typeRaw         = row[1].get!string();
+		dc.compilerVersion = row[2].get!string();
+		dc.frontEndVersion = row[3].get!string();
+		dcompilers ~= dc;
+	}
+	context.dcompilers = dcompilers;
+	
+	auto pageTemplate = compile_temple_file!"index.html";
+	auto html = pageTemplate.toString(context);
+
+	// Store HTML page in unique temp file (for atomicity)
+	static import std.ascii;
+	auto chars = std.ascii.digits ~ std.ascii.letters;
+	string getTempFilename()
+	{
+		import std.random;
+
+		auto buf = appender!string();
+		foreach(i; 0..32)
+			buf.put(chars.randomSample(1, chars.length));
+		return ".tmp_" ~ buf.data;
 	}
 
-	auto DC_TYPE              = getForm("DC_TYPE");
-	auto DC_TYPE_RAW          = getForm("DC_TYPE_RAW");
-	auto DC_COMPILER_VERSION  = getForm("DC_COMPILER_VERSION");
-	auto DC_FRONT_END_VERSION = getForm("DC_FRONT_END_VERSION");
-	auto DC_LLVM_VERSION      = getForm("DC_LLVM_VERSION");
-	auto DC_GCC_VERSION       = getForm("DC_GCC_VERSION");
-	auto DC_VERSION_HEADER    = getForm("DC_VERSION_HEADER");
-	auto DC_HELP_STATUS       = getForm("DC_HELP_STATUS").to!ubyte;
-	auto DC_HELP_OUTPUT       = getForm("DC_HELP_OUTPUT");
-	auto updated = cast(DateTime) Clock.currTime;
-	cmd.bindParameter(DC_TYPE,              0);
-	cmd.bindParameter(DC_TYPE_RAW,          1);
-	cmd.bindParameter(DC_COMPILER_VERSION,  2);
-	cmd.bindParameter(DC_FRONT_END_VERSION, 3);
-	cmd.bindParameter(DC_LLVM_VERSION,      4);
-	cmd.bindParameter(DC_GCC_VERSION,       5);
-	cmd.bindParameter(updated,              6);
-	cmd.bindParameter(DC_VERSION_HEADER,    7);
-	cmd.bindParameter(DC_HELP_STATUS,       8);
-	cmd.bindParameter(DC_HELP_OUTPUT,       9);
-
-	ulong rowsAffected;
-	try
-		cmd.execPrepared(rowsAffected);
-	catch(MySQLException e)
+	auto publicDir = buildNormalizedPath(thisExePath().baseName(), "..", "public");
+	auto targetHtmlPath = buildPath(publicDir, "index.html");
+	string tmpHtmlPath;
+	bool ok = false;
+	foreach(i; 0..256)
 	{
-		if(e.msg.canFind("Duplicate entry"))
-		{
-			res.writeBody("Compiler already in DB. Doing nothing.\n");
-			return;
-		}
-		
-		throw e;
+		tmpHtmlPath = buildPath(publicDir, getTempFilename());
+		File file;
+		try
+			file = File(tmpHtmlPath, "wx");
+		catch(Exception e)
+			continue;
+
+		file.rawWrite(html);
+		ok = true;
+		break;
 	}
+	if(!ok)
+		throw new Exception("Couldn't create unique temp file.");
+
+	// Atomic move temp file to target file
+	rename(tmpHtmlPath, targetHtmlPath);
 
 //	res.contentType = "text/html; charset=UTF-8";
 	res.writeBody("Ok, added new compiler\n");
