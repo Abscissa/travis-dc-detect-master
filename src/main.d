@@ -55,7 +55,7 @@ CREATE TABLE `$DB_NAME`.`compilers` (
 	`gccVersion`      VARCHAR(255) NOT NULL,
 	`updated`         DATETIME     NOT NULL,
 	`versionHeader`   VARCHAR(255) NOT NULL,
-	`helpStatus`      INT UNSIGNED NOT NULL,
+	`helpStatus`      INT          NOT NULL,
 	`helpOutput`      TEXT         NOT NULL,
 	PRIMARY KEY (`type`, `compilerVersion`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
@@ -237,7 +237,7 @@ void postCompiler(HTTPServerRequest req, HTTPServerResponse res)
 	auto DC_LLVM_VERSION      = getForm("DC_LLVM_VERSION");
 	auto DC_GCC_VERSION       = getForm("DC_GCC_VERSION");
 	auto DC_VERSION_HEADER    = getForm("DC_VERSION_HEADER");
-	auto DC_HELP_STATUS       = getForm("DC_HELP_STATUS").to!ubyte;
+	auto DC_HELP_STATUS       = getForm("DC_HELP_STATUS").to!int;
 	auto DC_HELP_OUTPUT       = getForm("DC_HELP_OUTPUT");
 	auto updated = cast(DateTime) Clock.currTime;
 	cmd.bindParameter(DC_TYPE,              0);
@@ -302,7 +302,7 @@ void regenerateHTMLPage()
 		dc.gccVersion      = row[5].get!string();
 		dc.updated         = row[6].get!DateTime();
 		dc.versionHeader   = row[7].get!string();
-		dc.helpStatus      = row[8].get!uint();
+		dc.helpStatus      = row[8].get!int();
 		dcompilers ~= dc;
 	}
 	context.dcompilers = dcompilers;
