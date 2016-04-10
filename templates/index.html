@@ -5,6 +5,9 @@
 <meta charset="UTF-8">
 <title>D Compilers on Travis-CI</title>
 <style>
+body {
+	font-family: sans;
+}
 table, th, td {
 	border: 1px solid black;
 	border-collapse: collapse;
@@ -12,29 +15,41 @@ table, th, td {
 th, td {
 	padding: 0.2em;
 }
+.unknown, .none, .error {
+	font-style: italic;
+}
+.unknown, .error {
+	color: red;
+}
 </style>
 </head>
 
 <body>
-<p>
-D Compilers Available on Travis-CI:
+<h1>D Compilers Available on Travis-CI:</h1>
 
 <table>
 	<tr>
-		<th>Type</th>
-		<th>Version</th>
+		<th rowspan="2">Type</th>
+		<th colspan="3">Version</th>
+		<th rowspan="2">Last Updated (in this DB)</th>
+		<th rowspan="2">Header</th>
+	</tr>
+	<tr>
+		<th>Compiler</th>
 		<th>Front End</th>
+		<th>LLVM</th>
 	</tr>
 	<% foreach(i, dc; var.dcompilers.get!(DCompiler[])) { %>
 	<tr>
-		<td><%= dc.type %></td>
-		<td>v<%= dc.compilerVersion %></td>
-		<td>v<%= dc.frontEndVersion %></td>
+		<td class="<%= dc.classType %>"><%= dc.type %></td>
+		<td class="<%= dc.classCompilerVersion %>"><%= dc.compilerVersion %></td>
+		<td class="<%= dc.classFrontEndVersion %>"><%= dc.frontEndVersion %></td>
+		<td class="<%= dc.classLlvmVersion %>"><%= dc.llvmVersion %></td>
+		<td class="normal"><%= dc.updated %></td>
+		<td class="<%= dc.classVersionHeader %>"><pre><%= dc.versionHeader %></pre></td>
 	</tr>
 	<% } %>
 </table>
-</p>
 
 </body>
-
 </html> 

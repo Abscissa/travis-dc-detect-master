@@ -17,4 +17,12 @@ struct DCompiler
 	int helpStatus;
 
 	DateTime updated;
+
+	string classType;
+	string classVersionHeader;
+	string classCompilerVersion;
+	string classFrontEndVersion;
+	string classLlvmVersion;
+	string classGccVersion;
+	string classHelpStatus;
 }

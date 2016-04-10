@@ -286,23 +286,61 @@ void regenerateHTMLPage()
 		ORDER BY `typeRaw` ASC, `type` ASC, `compilerVersion` ASC;
 	";
 	auto rows = cmd.execSQLSequence();
+
+	string cleanupVersionString(string ver)
+	{
+		if(ver == "unknown")
+			return ver;
+
+		else if(ver == "none")
+			return "(none)";
+
+		return "v"~ver;
+	}
+
+	string classOfString(string str)
+	{
+		if(str == "unknown" || str == "none")
+			return str;
+
+		return "normal";
+	}
+
+	string classOfExitStatus(int status)
+	{
+		return status == 0? "normal" : "error";
+	}
+
 	DCompiler[] dcompilers;
 	foreach(row; rows)
 	{
-		DCompiler dc;
-		auto type    = row[0].get!string();
-		auto typeRaw = row[1].get!string();
-		if(type != typeRaw)
-			type ~= " ("~typeRaw~")";
+		auto type            = row[0].get!string();
+		auto typeRaw         = row[1].get!string();
+		auto compilerVersion = row[2].get!string();
+		auto frontEndVersion = row[3].get!string();
+		auto llvmVersion     = row[4].get!string();
+		auto gccVersion      = row[5].get!string();
+		auto updated         = row[6].get!DateTime();
+		auto versionHeader   = row[7].get!string();
+		auto helpStatus      = row[8].get!int();
 
-		dc.type            = type;
-		dc.compilerVersion = row[2].get!string();
-		dc.frontEndVersion = row[3].get!string();
-		dc.llvmVersion     = row[4].get!string();
-		dc.gccVersion      = row[5].get!string();
-		dc.updated         = row[6].get!DateTime();
-		dc.versionHeader   = row[7].get!string();
-		dc.helpStatus      = row[8].get!int();
+		DCompiler dc;
+		dc.type            = type==typeRaw? type : type~" ("~typeRaw~")";
+		dc.compilerVersion = cleanupVersionString( compilerVersion );
+		dc.frontEndVersion = cleanupVersionString( frontEndVersion );
+		dc.llvmVersion     = cleanupVersionString( llvmVersion );
+		dc.gccVersion      = cleanupVersionString( gccVersion );
+		dc.updated         = updated;
+		dc.versionHeader   = versionHeader;
+		dc.helpStatus      = helpStatus;
+
+		dc.classType            = classOfString(type);
+		dc.classCompilerVersion = classOfString(compilerVersion);
+		dc.classFrontEndVersion = classOfString(frontEndVersion);
+		dc.classLlvmVersion     = classOfString(llvmVersion);
+		dc.classGccVersion      = classOfString(gccVersion);
+		dc.classVersionHeader   = classOfString(versionHeader);
+		dc.classHelpStatus      = classOfExitStatus(helpStatus);
 		dcompilers ~= dc;
 	}
 	context.dcompilers = dcompilers;
