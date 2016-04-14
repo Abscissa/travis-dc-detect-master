@@ -124,6 +124,8 @@ void main()
 	auto settings = new HTTPServerSettings;
 	settings.port = config.port;
 	settings.bindAddresses = config.address;
+	settings.accessLogToConsole = true;
+	settings.errorPageHandler = (req,res,err) => onError(req,res,err);
 	listenHTTP(settings, router);
 	logInfo(text("Please open http://", config.address[0], ":", config.port, "/ in your browser."));
 
@@ -131,6 +133,12 @@ void main()
 	auto dbConn = openDB();
 	regenerateHTMLPage();
 	runEventLoop();
+}
+
+void onError(HTTPServerRequest req, HTTPServerResponse res, HTTPServerErrorInfo errInfo)
+{
+	res.writeBody(text(res.statusCode, " - ", res.statusPhrase, "\n"));
+	logError("%s", text("HTTP ", errInfo.code, ": ", errInfo.debugMessage));
 }
 
 void initDB()
