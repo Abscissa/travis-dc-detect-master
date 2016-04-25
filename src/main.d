@@ -99,14 +99,14 @@ void main()
 	if("url-prefix" in sdlConfig.tags) config.urlPrefix = sdlConfig.tags["url-prefix"][0].values[0].get!string;
 	if("pass-hash-sha256" in sdlConfig.tags) config.passHash = sdlConfig.tags["pass-hash-sha256"][0].values[0].get!string;
 
-	config.dbHost      = sdlConfig.tags["db-host"      ][0].values[0].get!string;
-	config.dbPort      = sdlConfig.tags["db-port"      ][0].values[0].get!int.to!ushort;
-	config.dbName      = sdlConfig.tags["db-name"      ][0].values[0].get!string;
-	config.dbUser      = sdlConfig.tags["db-user"      ][0].values[0].get!string;
-	config.dbPass      = sdlConfig.tags["db-pass"      ][0].values[0].get!string;
-	config.dbAdminUser = sdlConfig.tags["db-admin-user"][0].values[0].get!string;
-	config.dbAdminPass = sdlConfig.tags["db-admin-pass"][0].values[0].get!string;
-	config.dbAdminNewUserHost = sdlConfig.tags["db-admin-new-user-host"][0].values[0].get!string;
+	if("db-host" in sdlConfig.tags) config.dbHost = sdlConfig.tags["db-host"][0].values[0].get!string;
+	if("db-port" in sdlConfig.tags) config.dbPort = sdlConfig.tags["db-port"][0].values[0].get!int.to!ushort;
+	if("db-user" in sdlConfig.tags) config.dbUser = sdlConfig.tags["db-user"][0].values[0].get!string;
+	if("db-name" in sdlConfig.tags) config.dbName = sdlConfig.tags["db-name"][0].values[0].get!string;
+	if("db-pass" in sdlConfig.tags) config.dbPass = sdlConfig.tags["db-pass"][0].values[0].get!string;
+	if("db-admin-user"          in sdlConfig.tags) config.dbAdminUser = sdlConfig.tags["db-admin-user"][0].values[0].get!string;
+	if("db-admin-pass"          in sdlConfig.tags) config.dbAdminPass = sdlConfig.tags["db-admin-pass"][0].values[0].get!string;
+	if("db-admin-new-user-host" in sdlConfig.tags) config.dbAdminNewUserHost = sdlConfig.tags["db-admin-new-user-host"][0].values[0].get!string;
 
 	if(!config.urlPrefix.startsWith("/"))
 		config.urlPrefix = "/" ~ config.urlPrefix;
