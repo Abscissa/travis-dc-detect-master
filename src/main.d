@@ -122,9 +122,9 @@ void main()
 
 	// the router will match incoming HTTP requests to the proper routes
 	auto router = new URLRouter();
-	//router.get(config.urlPrefix~"/", &index);
-	//router.get(config.urlPrefix~"/compiler", &compiler);
-	router.post(config.urlPrefix~"/compiler", &postCompiler);
+	//router.get(config.urlPrefix~"", &index);
+	//router.get(config.urlPrefix~"compiler", &compiler);
+	router.post(config.urlPrefix~"compiler", &postCompiler);
 	auto fileServerSettings = new HTTPFileServerSettings();
 	fileServerSettings.serverPathPrefix = config.urlPrefix;
 	router.get("*", serveStaticFiles("public/", fileServerSettings));
