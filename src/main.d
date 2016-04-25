@@ -16,7 +16,6 @@ alias write = std.stdio.write;
 
 struct Config
 {
-	string name = "index";
 	string[] address = ["127.0.0.1", "::1"];
 	ushort port = 8080;
 	string urlPrefix = "/";
@@ -95,7 +94,6 @@ void main()
 		return;
 
 	auto sdlConfig = parseFile("config.sdl");
-	if("name"       in sdlConfig.tags) config.name      = sdlConfig.tags["name"      ][0].values[0].get!string;
 	if("address"    in sdlConfig.tags) config.address   = sdlConfig.tags["address"   ][0].values.map!(a => a.get!string).array;
 	if("port"       in sdlConfig.tags) config.port      = sdlConfig.tags["port"      ][0].values[0].get!int.to!ushort;
 	if("url-prefix" in sdlConfig.tags) config.urlPrefix = sdlConfig.tags["url-prefix"][0].values[0].get!string;
