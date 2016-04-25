@@ -19,6 +19,7 @@ struct Config
 	string name = "index";
 	string[] address = ["127.0.0.1", "::1"];
 	ushort port = 8080;
+	string urlPrefix = "/";
 	string passHash; // SHA256
 
 	string dbHost;
@@ -94,9 +95,10 @@ void main()
 		return;
 
 	auto sdlConfig = parseFile("config.sdl");
-	if("name"    in sdlConfig.tags) config.name    = sdlConfig.tags["name"   ][0].values[0].get!string;
-	if("address" in sdlConfig.tags) config.address = sdlConfig.tags["address"][0].values.map!(a => a.get!string).array;
-	if("port"    in sdlConfig.tags) config.port    = sdlConfig.tags["port"   ][0].values[0].get!int.to!ushort;
+	if("name"       in sdlConfig.tags) config.name      = sdlConfig.tags["name"      ][0].values[0].get!string;
+	if("address"    in sdlConfig.tags) config.address   = sdlConfig.tags["address"   ][0].values.map!(a => a.get!string).array;
+	if("port"       in sdlConfig.tags) config.port      = sdlConfig.tags["port"      ][0].values[0].get!int.to!ushort;
+	if("url-prefix" in sdlConfig.tags) config.urlPrefix = sdlConfig.tags["url-prefix"][0].values[0].get!string;
 	if("pass-hash-sha256" in sdlConfig.tags) config.passHash = sdlConfig.tags["pass-hash-sha256"][0].values[0].get!string;
 
 	config.dbHost      = sdlConfig.tags["db-host"      ][0].values[0].get!string;
@@ -108,6 +110,12 @@ void main()
 	config.dbAdminPass = sdlConfig.tags["db-admin-pass"][0].values[0].get!string;
 	config.dbAdminNewUserHost = sdlConfig.tags["db-admin-new-user-host"][0].values[0].get!string;
 
+	if(!config.urlPrefix.startsWith("/"))
+		config.urlPrefix = "/" ~ config.urlPrefix;
+
+	if(!config.urlPrefix.endsWith("/"))
+		config.urlPrefix = config.urlPrefix ~ "/";
+
 	if(shouldInitDB)
 	{
 		initDB();
@@ -116,10 +124,12 @@ void main()
 
 	// the router will match incoming HTTP requests to the proper routes
 	auto router = new URLRouter();
-	//router.get("/", &index);
-	//router.get("/compiler", &compiler);
-	router.post("/compiler", &postCompiler);
-	router.get("*", serveStaticFiles("public/"));
+	//router.get(config.urlPrefix~"/", &index);
+	//router.get(config.urlPrefix~"/compiler", &compiler);
+	router.post(config.urlPrefix~"/compiler", &postCompiler);
+	auto fileServerSettings = new HTTPFileServerSettings();
+	fileServerSettings.serverPathPrefix = config.urlPrefix;
+	router.get("*", serveStaticFiles("public/", fileServerSettings));
 
 	auto settings = new HTTPServerSettings;
 	settings.port = config.port;

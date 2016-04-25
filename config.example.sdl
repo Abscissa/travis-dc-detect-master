@@ -1,8 +1,17 @@
 // Copy this file to "config.sdl" and then edit as needed.
+// Note: After modifying this file, you must restart the program for the
+// changes to take effect.
 
 // IP(s) and port nummber to bind to:
 address "127.0.0.1" "::1"
 port 8080
+
+// If this program is set to run in a subdirectory, (ex. running as
+// "http://example.com/travis-dc-detect/" insetad of "http://example.com/")
+// then set this to the desired prefix.
+// Leading and trailing slashes are optional. Default is "/".
+url-prefix "/"
+//url-prefix "/travis-dc-detect/"
 
 // Generate this value on linux via:
 // $ echo -n 'really long password of random characters' | sha256sum
