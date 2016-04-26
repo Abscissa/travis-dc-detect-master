@@ -4,6 +4,8 @@ import std.datetime;
 
 struct DCompiler
 {
+	string name;
+
 	string type;
 	string typeRaw;
 
@@ -18,6 +20,7 @@ struct DCompiler
 
 	DateTime updated;
 
+	string className;
 	string classType;
 	string classVersionHeader;
 	string classCompilerVersion;

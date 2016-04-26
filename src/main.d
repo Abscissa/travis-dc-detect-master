@@ -352,8 +352,10 @@ void regenerateHTMLPage()
 		auto updated         = row[6].get!DateTime();
 		auto versionHeader   = row[7].get!string();
 		auto helpStatus      = row[8].get!int();
+		auto name = type=="unknown"? "unknown" : type ~ "-" ~ compilerVersion;
 
 		DCompiler dc;
+		dc.name            = name;
 		dc.type            = type==typeRaw? type : type~" ("~typeRaw~")";
 		dc.compilerVersion = cleanupVersionString( compilerVersion );
 		dc.frontEndVersion = cleanupVersionString( frontEndVersion );
@@ -363,6 +365,7 @@ void regenerateHTMLPage()
 		dc.versionHeader   = versionHeader;
 		dc.helpStatus      = helpStatus;
 
+		dc.className            = classOfString(name);
 		dc.classType            = classOfString(type);
 		dc.classCompilerVersion = classOfString(compilerVersion);
 		dc.classFrontEndVersion = classOfString(frontEndVersion);
