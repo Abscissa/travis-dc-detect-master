@@ -7,11 +7,14 @@ address "127.0.0.1" "::1"
 port 8080
 
 // If this program is set to run in a subdirectory, (ex. running as
-// "http://example.com/travis-dc-detect/" insetad of "http://example.com/")
+// "http://example.com/travis-dc-detect/" instead of "http://example.com/")
 // then set this to the desired prefix.
 // Leading and trailing slashes are optional. Default is "/".
 url-prefix "/"
 //url-prefix "/travis-dc-detect/"
+
+// (optional) Path to logfile. The loglevel is "warnings"
+//log-file "./travis-dc-detect-master.log"
 
 // Generate this value on linux via:
 // $ echo -n 'really long password of random characters' | sha256sum

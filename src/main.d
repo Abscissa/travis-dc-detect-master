@@ -6,6 +6,8 @@ import std.stdio;
 
 import vibe.vibe;
 import vibe.core.connectionpool;
+import vibe.core.log;
+
 import mysql.db;
 import temple;
 import sdlang;
@@ -19,6 +21,7 @@ struct Config
 	string[] address = ["127.0.0.1", "::1"];
 	ushort port = 8080;
 	string urlPrefix = "/";
+	string logFile;
 	string passHash; // SHA256
 
 	string dbHost;
@@ -29,6 +32,8 @@ struct Config
 	string dbAdminUser;
 	string dbAdminPass;
 	string dbAdminNewUserHost;
+
+	string thisProjectPath;
 }
 Config config;
 
@@ -93,10 +98,13 @@ void main()
 	if (!finalizeCommandLineOptions())
 		return;
 
-	auto sdlConfig = parseFile("config.sdl");
+	config.thisProjectPath = buildPath(thisExePath().dirName(), "..");
+	auto sdlConfigPath = buildPath(config.thisProjectPath, "config.sdl");
+	auto sdlConfig = parseFile(sdlConfigPath);
 	if("address"    in sdlConfig.tags) config.address   = sdlConfig.tags["address"   ][0].values.map!(a => a.get!string).array;
 	if("port"       in sdlConfig.tags) config.port      = sdlConfig.tags["port"      ][0].values[0].get!int.to!ushort;
 	if("url-prefix" in sdlConfig.tags) config.urlPrefix = sdlConfig.tags["url-prefix"][0].values[0].get!string;
+	if("log-file"   in sdlConfig.tags) config.logFile   = sdlConfig.tags["log-file"  ][0].values[0].get!string;
 	if("pass-hash-sha256" in sdlConfig.tags) config.passHash = sdlConfig.tags["pass-hash-sha256"][0].values[0].get!string;
 
 	if("db-host" in sdlConfig.tags) config.dbHost = sdlConfig.tags["db-host"][0].values[0].get!string;
@@ -120,14 +128,19 @@ void main()
 		return;
 	}
 
+	if(config.logFile)
+		setLogFile(config.logFile, LogLevel.warn);
+
 	// the router will match incoming HTTP requests to the proper routes
 	auto router = new URLRouter();
 	//router.get(config.urlPrefix~"", &index);
 	//router.get(config.urlPrefix~"compiler", &compiler);
 	router.post(config.urlPrefix~"compiler", &postCompiler);
+
+	auto publicPath = buildPath(config.thisProjectPath, "public/");
 	auto fileServerSettings = new HTTPFileServerSettings();
 	fileServerSettings.serverPathPrefix = config.urlPrefix;
-	router.get("*", serveStaticFiles("public/", fileServerSettings));
+	router.get("*", serveStaticFiles(publicPath, fileServerSettings));
 
 	auto settings = new HTTPServerSettings;
 	settings.port = config.port;
@@ -377,7 +390,7 @@ void regenerateHTMLPage()
 		return ".tmp_" ~ buf.data;
 	}
 
-	auto publicDir = buildNormalizedPath(thisExePath().baseName(), "..", "public");
+	auto publicDir = buildNormalizedPath(config.thisProjectPath, "public");
 	auto targetHtmlPath = buildPath(publicDir, "index.html");
 	string tmpHtmlPath;
 	bool ok = false;
