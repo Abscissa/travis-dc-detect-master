@@ -15,6 +15,15 @@ url-prefix "/"
 
 // Generate this value on linux via:
 // $ echo -n 'really long password of random characters' | sha256sum
+//
+// To generate the corresponding "secure" value for the '.travis.yml'
+// in travis-dc-detect-slave (only needed when travis-dc-detect-slave is
+// actually being run by travis-ci): First install the travis-ci commandline
+// client through Ruby's Gem (instructions at <>):
+// $ gem install travis
+// Then do this from your travis-dc-detect-slave directory:
+// $ travis encrypt 'REPORTING_SERVER_PASS=really long password of random characters'
+//
 // WARNING! Do not leave this as default!
 pass-hash-sha256 "2f23bbf01daa80f8b05facb1c69ae2dd71ed21b24830aa2a7932464779743574"
 
