@@ -13,6 +13,12 @@ port 8080
 url-prefix "/"
 //url-prefix "/travis-dc-detect/"
 
+// See https://docs.travis-ci.com/user/triggering-builds
+travis-api-token   "your token here"
+travis-repo-user   "YourGitHubUsername"
+travis-repo-name   "travis-dc-detect-slave"
+travis-repo-branch "master"
+
 // (optional) Path to logfile. The loglevel is "warnings"
 //log-file "./travis-dc-detect-master.log"
 

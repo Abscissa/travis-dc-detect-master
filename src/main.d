@@ -21,6 +21,10 @@ struct Config
 	string[] address = ["127.0.0.1", "::1"];
 	ushort port = 8080;
 	string urlPrefix = "/";
+	string travisApiToken;
+	string travisRepoUser;
+	string travisRepoName;
+	string travisRepoBranch;
 	string logFile;
 	string passHash; // SHA256
 
@@ -92,7 +96,9 @@ immutable dbTroubleshootMsg =
 void main()
 {
 	bool shouldInitDB = false;
+	bool testTriggerTravis = false;
 	readOption("init-db", &shouldInitDB, "(Re-)Initialize the database and exit (WARNING! THIS WILL DESTROY ALL DATA!");
+	readOption("test-trigger-travis", &testTriggerTravis, "testTriggerTravis");
 
 	// returns false if a help screen has been requested and displayed (--help)
 	if (!finalizeCommandLineOptions())
@@ -101,11 +107,15 @@ void main()
 	config.thisProjectPath = buildPath(thisExePath().dirName(), "..");
 	auto sdlConfigPath = buildPath(config.thisProjectPath, "config.sdl");
 	auto sdlConfig = parseFile(sdlConfigPath);
-	if("address"    in sdlConfig.tags) config.address   = sdlConfig.tags["address"   ][0].values.map!(a => a.get!string).array;
-	if("port"       in sdlConfig.tags) config.port      = sdlConfig.tags["port"      ][0].values[0].get!int.to!ushort;
-	if("url-prefix" in sdlConfig.tags) config.urlPrefix = sdlConfig.tags["url-prefix"][0].values[0].get!string;
-	if("log-file"   in sdlConfig.tags) config.logFile   = sdlConfig.tags["log-file"  ][0].values[0].get!string;
-	if("pass-hash-sha256" in sdlConfig.tags) config.passHash = sdlConfig.tags["pass-hash-sha256"][0].values[0].get!string;
+	if("address"            in sdlConfig.tags) config.address          = sdlConfig.tags["address"           ][0].values.map!(a => a.get!string).array;
+	if("port"               in sdlConfig.tags) config.port             = sdlConfig.tags["port"              ][0].values[0].get!int.to!ushort;
+	if("url-prefix"         in sdlConfig.tags) config.urlPrefix        = sdlConfig.tags["url-prefix"        ][0].values[0].get!string;
+	if("travis-api-token"   in sdlConfig.tags) config.travisApiToken   = sdlConfig.tags["travis-api-token"  ][0].values[0].get!string;
+	if("travis-repo-user"   in sdlConfig.tags) config.travisRepoUser   = sdlConfig.tags["travis-repo-user"  ][0].values[0].get!string;
+	if("travis-repo-name"   in sdlConfig.tags) config.travisRepoName   = sdlConfig.tags["travis-repo-name"  ][0].values[0].get!string;
+	if("travis-repo-branch" in sdlConfig.tags) config.travisRepoBranch = sdlConfig.tags["travis-repo-branch"][0].values[0].get!string;
+	if("log-file"           in sdlConfig.tags) config.logFile          = sdlConfig.tags["log-file"          ][0].values[0].get!string;
+	if("pass-hash-sha256"   in sdlConfig.tags) config.passHash         = sdlConfig.tags["pass-hash-sha256"  ][0].values[0].get!string;
 
 	if("db-host" in sdlConfig.tags) config.dbHost = sdlConfig.tags["db-host"][0].values[0].get!string;
 	if("db-port" in sdlConfig.tags) config.dbPort = sdlConfig.tags["db-port"][0].values[0].get!int.to!ushort;
@@ -125,6 +135,14 @@ void main()
 	if(shouldInitDB)
 	{
 		initDB();
+		return;
+	}
+
+	if(testTriggerTravis)
+	{
+		auto statusCode = triggerTravisRebuild();
+		if(statusCode >= 400)
+			logError("%s", text("Couldn't trigger travis rebuild: HTTP status ", statusCode));
 		return;
 	}
 
@@ -312,7 +330,7 @@ void regenerateHTMLPage()
 			`type`, `typeRaw`, `compilerVersion`, `frontEndVersion`, `llvmVersion`,
 			`gccVersion`, `updated`, `versionHeader`, `helpStatus`, `helpOutput`
 		FROM `compilers`
-		ORDER BY `typeRaw` ASC, `type` ASC, `compilerVersion` ASC;
+		ORDER BY `typeRaw` ASC, `type` ASC, `compilerVersion` DESC;
 	";
 	auto rows = cmd.execSQLSequence();
 
@@ -416,6 +434,28 @@ void regenerateHTMLPage()
 	// Atomic move temp file to target file
 	rename(tmpHtmlPath, targetHtmlPath);
 } 
+
+// Does this: https://docs.travis-ci.com/user/triggering-builds
+// Returns: HTTP status code
+int triggerTravisRebuild()
+{
+	import std.net.curl;
+ 	
+	auto postBody = `{
+		"request": {
+		"branch":"`~config.travisRepoBranch~`"
+		}}`;
+
+	auto http = HTTP("https://api.travis-ci.org/repo/"~config.travisRepoUser~"%2F"~config.travisRepoName~"/requests");
+	http.setPostData(postBody, "application/json");
+	http.addRequestHeader("Accept", "application/json");
+	http.addRequestHeader("Travis-API-Version", "3");
+	http.addRequestHeader("Authorization", "token "~config.travisApiToken);
+	http.perform();
+	writeln();
+	
+	return http.statusLine.code;
+}
 
 /++
 Compare two arrays in "length-constant" time. This thwarts timing-based
