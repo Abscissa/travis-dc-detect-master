@@ -96,9 +96,7 @@ immutable dbTroubleshootMsg =
 void main()
 {
 	bool shouldInitDB = false;
-	bool testTriggerTravis = false;
 	readOption("init-db", &shouldInitDB, "(Re-)Initialize the database and exit (WARNING! THIS WILL DESTROY ALL DATA!");
-	readOption("test-trigger-travis", &testTriggerTravis, "testTriggerTravis");
 
 	// returns false if a help screen has been requested and displayed (--help)
 	if (!finalizeCommandLineOptions())
@@ -138,14 +136,6 @@ void main()
 		return;
 	}
 
-	if(testTriggerTravis)
-	{
-		auto statusCode = triggerTravisRebuild();
-		if(statusCode >= 400)
-			logError("%s", text("Couldn't trigger travis rebuild: HTTP status ", statusCode));
-		return;
-	}
-
 	if(config.logFile)
 		setLogFile(config.logFile, LogLevel.warn);
 
@@ -167,6 +157,10 @@ void main()
 	settings.errorPageHandler = (req,res,err) => onError(req,res,err);
 	listenHTTP(settings, router);
 	logInfo(text("Please open http://", config.address[0], ":", config.port, "/ in your browser."));
+
+	logInfo("Triggering initial travis rebuild of travis-dc-detect-slave");
+	triggerTravisRebuild();
+	setTimer(24.hours, toDelegate(&triggerTravisRebuild), true);
 
 	lowerPrivileges();
 	auto dbConn = openDB();
@@ -436,8 +430,7 @@ void regenerateHTMLPage()
 } 
 
 // Does this: https://docs.travis-ci.com/user/triggering-builds
-// Returns: HTTP status code
-int triggerTravisRebuild()
+void triggerTravisRebuild()
 {
 	import std.net.curl;
  	
@@ -454,7 +447,8 @@ int triggerTravisRebuild()
 	http.perform();
 	writeln();
 	
-	return http.statusLine.code;
+	if(http.statusLine.code >= 400)
+		logError("%s", text("Couldn't trigger travis rebuild: HTTP status ", http.statusLine.code));
 }
 
 /++
