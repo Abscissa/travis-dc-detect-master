@@ -352,6 +352,18 @@ void regenerateHTMLPage()
 		return status == 0? "normal" : "error";
 	}
 
+	// The name travis uses for a particular compiler type & version
+	string travisCompilerName(string type, string ver)
+	{
+		if(type == "ldc2")
+			type = "ldc";
+
+		if(type == "unknown")
+			return type;
+		else
+			return type ~ "-" ~ ver;
+	}
+
 	DCompiler[] dcompilers;
 	foreach(row; rows)
 	{
@@ -364,7 +376,7 @@ void regenerateHTMLPage()
 		auto updated         = row[6].get!DateTime();
 		auto versionHeader   = row[7].get!string();
 		auto helpStatus      = row[8].get!int();
-		auto name = type=="unknown"? "unknown" : type ~ "-" ~ compilerVersion;
+		auto name = travisCompilerName(type, compilerVersion);
 
 		DCompiler dc;
 		dc.name            = name;
