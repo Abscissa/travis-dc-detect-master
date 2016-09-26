@@ -1,0 +1,17 @@
+{
+	"fileVersion": 1,
+	"versions": {
+		"libasync": "0.7.9",
+		"libev": "5.0.0+4.04",
+		"libevent": "2.0.1+2.0.16",
+		"libinputvisitor": "1.2.2",
+		"memutils": "0.4.7",
+		"mysql-native": "0.1.6+commit.1.g1ba419b",
+		"openssl": "1.1.4+1.0.1g",
+		"sdlang-d": "0.10.0",
+		"taggedalgebraic": "0.10.2",
+		"temple": {"path":"temple"},
+		"unit-threaded": "0.6.28",
+		"vibe-d": "0.7.28"
+	}
+}

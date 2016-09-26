@@ -105,24 +105,28 @@ void main()
 	config.thisProjectPath = buildPath(thisExePath().dirName(), "..");
 	auto sdlConfigPath = buildPath(config.thisProjectPath, "config.sdl");
 	auto sdlConfig = parseFile(sdlConfigPath);
-	if("address"            in sdlConfig.tags) config.address          = sdlConfig.tags["address"           ][0].values.map!(a => a.get!string).array;
-	if("port"               in sdlConfig.tags) config.port             = sdlConfig.tags["port"              ][0].values[0].get!int.to!ushort;
-	if("url-prefix"         in sdlConfig.tags) config.urlPrefix        = sdlConfig.tags["url-prefix"        ][0].values[0].get!string;
-	if("travis-api-token"   in sdlConfig.tags) config.travisApiToken   = sdlConfig.tags["travis-api-token"  ][0].values[0].get!string;
-	if("travis-repo-user"   in sdlConfig.tags) config.travisRepoUser   = sdlConfig.tags["travis-repo-user"  ][0].values[0].get!string;
-	if("travis-repo-name"   in sdlConfig.tags) config.travisRepoName   = sdlConfig.tags["travis-repo-name"  ][0].values[0].get!string;
-	if("travis-repo-branch" in sdlConfig.tags) config.travisRepoBranch = sdlConfig.tags["travis-repo-branch"][0].values[0].get!string;
-	if("log-file"           in sdlConfig.tags) config.logFile          = sdlConfig.tags["log-file"          ][0].values[0].get!string;
-	if("pass-hash-sha256"   in sdlConfig.tags) config.passHash         = sdlConfig.tags["pass-hash-sha256"  ][0].values[0].get!string;
+	
+	auto addressTag = sdlConfig.getTag("address");
+	if(addressTag)
+		config.address = addressTag.values.map!(a => a.get!string).array;
 
-	if("db-host" in sdlConfig.tags) config.dbHost = sdlConfig.tags["db-host"][0].values[0].get!string;
-	if("db-port" in sdlConfig.tags) config.dbPort = sdlConfig.tags["db-port"][0].values[0].get!int.to!ushort;
-	if("db-user" in sdlConfig.tags) config.dbUser = sdlConfig.tags["db-user"][0].values[0].get!string;
-	if("db-name" in sdlConfig.tags) config.dbName = sdlConfig.tags["db-name"][0].values[0].get!string;
-	if("db-pass" in sdlConfig.tags) config.dbPass = sdlConfig.tags["db-pass"][0].values[0].get!string;
-	if("db-admin-user"          in sdlConfig.tags) config.dbAdminUser = sdlConfig.tags["db-admin-user"][0].values[0].get!string;
-	if("db-admin-pass"          in sdlConfig.tags) config.dbAdminPass = sdlConfig.tags["db-admin-pass"][0].values[0].get!string;
-	if("db-admin-new-user-host" in sdlConfig.tags) config.dbAdminNewUserHost = sdlConfig.tags["db-admin-new-user-host"][0].values[0].get!string;
+	config.port             = sdlConfig.getTagValue!int("port", config.port).to!ushort;
+	config.urlPrefix        = sdlConfig.getTagValue!string("url-prefix", config.urlPrefix);
+	config.travisApiToken   = sdlConfig.expectTagValue!string("travis-api-token");
+	config.travisRepoUser   = sdlConfig.expectTagValue!string("travis-repo-user");
+	config.travisRepoName   = sdlConfig.expectTagValue!string("travis-repo-name");
+	config.travisRepoBranch = sdlConfig.expectTagValue!string("travis-repo-branch");
+	config.logFile          = sdlConfig.expectTagValue!string("log-file");
+	config.passHash         = sdlConfig.expectTagValue!string("pass-hash-sha256");
+
+	config.dbHost      = sdlConfig.expectTagValue!string("db-host");
+	config.dbPort      = sdlConfig.expectTagValue!int("db-port").to!ushort;
+	config.dbUser      = sdlConfig.expectTagValue!string("db-user");
+	config.dbName      = sdlConfig.expectTagValue!string("db-name");
+	config.dbPass      = sdlConfig.expectTagValue!string("db-pass");
+	config.dbAdminUser = sdlConfig.expectTagValue!string("db-admin-user");
+	config.dbAdminPass = sdlConfig.expectTagValue!string("db-admin-pass");
+	config.dbAdminNewUserHost = sdlConfig.expectTagValue!string("db-admin-new-user-host");
 
 	if(!config.urlPrefix.startsWith("/"))
 		config.urlPrefix = "/" ~ config.urlPrefix;

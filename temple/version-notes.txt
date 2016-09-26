@@ -1,0 +1,2 @@
+This is <https://github.com/dymk/temple> @ commit ddf6244fe2e7d774c55478a6b6bd080a9cf2d81b
+with Pull Request #38 applied <https://github.com/dymk/temple/pull/38>
