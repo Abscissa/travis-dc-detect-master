@@ -25,6 +25,7 @@ struct Config
 	string travisRepoUser;
 	string travisRepoName;
 	string travisRepoBranch;
+	bool   initialTravisTrigger;
 	string logFile;
 	string passHash; // SHA256
 
@@ -110,14 +111,15 @@ void main()
 	if(addressTag)
 		config.address = addressTag.values.map!(a => a.get!string).array;
 
-	config.port             = sdlConfig.getTagValue!int("port", config.port).to!ushort;
-	config.urlPrefix        = sdlConfig.getTagValue!string("url-prefix", config.urlPrefix);
-	config.travisApiToken   = sdlConfig.expectTagValue!string("travis-api-token");
-	config.travisRepoUser   = sdlConfig.expectTagValue!string("travis-repo-user");
-	config.travisRepoName   = sdlConfig.expectTagValue!string("travis-repo-name");
-	config.travisRepoBranch = sdlConfig.expectTagValue!string("travis-repo-branch");
-	config.logFile          = sdlConfig.expectTagValue!string("log-file");
-	config.passHash         = sdlConfig.expectTagValue!string("pass-hash-sha256");
+	config.port                 = sdlConfig.getTagValue!int("port", config.port).to!ushort;
+	config.urlPrefix            = sdlConfig.getTagValue!string("url-prefix", config.urlPrefix);
+	config.travisApiToken       = sdlConfig.expectTagValue!string("travis-api-token");
+	config.travisRepoUser       = sdlConfig.expectTagValue!string("travis-repo-user");
+	config.travisRepoName       = sdlConfig.expectTagValue!string("travis-repo-name");
+	config.travisRepoBranch     = sdlConfig.expectTagValue!string("travis-repo-branch");
+	config.initialTravisTrigger = sdlConfig.getTagValue!bool("initial-travis-trigger", true);
+	config.logFile              = sdlConfig.expectTagValue!string("log-file");
+	config.passHash             = sdlConfig.expectTagValue!string("pass-hash-sha256");
 
 	config.dbHost      = sdlConfig.expectTagValue!string("db-host");
 	config.dbPort      = sdlConfig.expectTagValue!int("db-port").to!ushort;
@@ -162,8 +164,13 @@ void main()
 	listenHTTP(settings, router);
 	logInfo(text("Please open http://", config.address[0], ":", config.port, "/ in your browser."));
 
-	logInfo("Triggering initial travis rebuild of travis-dc-detect-slave");
-	triggerTravisRebuild();
+	if(config.initialTravisTrigger)
+	{
+		logInfo("Triggering initial travis rebuild of travis-dc-detect-slave");
+		triggerTravisRebuild();
+	}
+	else
+		logInfo("NOT triggering initial travis rebuild of travis-dc-detect-slave");
 	setTimer(24.hours, toDelegate(&triggerTravisRebuild), true);
 
 	lowerPrivileges();

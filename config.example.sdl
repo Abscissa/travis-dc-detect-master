@@ -19,6 +19,10 @@ travis-repo-user   "YourGitHubUsername"
 travis-repo-name   "travis-dc-detect-slave"
 travis-repo-branch "master"
 
+// (optional) Whether or not to trigger a travis run of
+// travis-dc-detect-slave upon startup. Default: true
+//initial-travis-trigger false
+
 // (optional) Path to logfile. The loglevel is "warnings"
 //log-file "./travis-dc-detect-master.log"
 
