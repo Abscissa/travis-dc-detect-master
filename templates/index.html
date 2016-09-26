@@ -21,6 +21,16 @@ th, td {
 .unknown, .error {
 	color: red;
 }
+
+ul {
+	padding-top: 0em;
+	margin-top: 0em;
+}
+
+h2, h3 {
+	padding-bottom: 0em;
+	margin-bottom: 0em;
+}
 </style>
 </head>
 
@@ -34,9 +44,7 @@ All information in the table is automatically detected via
 <a href="https://github.com/Abscissa/travis-dc-detect-slave">travis-dc-detect-slave</a>.
 </p>
 
-<p>
-More info:
-</p>
+<h3>More info:</h3>
 <ul>
 <li><a href="https://docs.travis-ci.com/user/languages/d">Building a D Project on Travis-CI</a></li>
 <li><a href="http://dlang.org/changelog/">DMD's official release list and changelog</a></li>
@@ -45,12 +53,22 @@ More info:
 <li><a href="https://wiki.dlang.org/GDC#Supported_GCC_versions">GDC version info (wiki)</a></li>
 </ul>
 
+
+<h3>Jump to:</h3>
+<ul>
+<li><a href="#dmd">DMD</a></li>
+<li><a href="#gdc">GDC</a></li>
+<li><a href="#ldc">LDC</a></li>
+</ul>
+
 <table>
+	<!-- DMD -->
+	<a name="dmd" />
 	<tr>
 		<th rowspan="2">Name</th>
 		<th rowspan="2">Type</th>
 		<th colspan="3">Version</th>
-		<th rowspan="2">Date added to this DB</th>
+		<th rowspan="2">Date added/updated in this DB</th>
 		<th rowspan="2">Header</th>
 	</tr>
 	<tr>
@@ -59,6 +77,7 @@ More info:
 		<th>LLVM</th>
 	</tr>
 	<% foreach(i, dc; var.dcompilers.get!(DCompiler[])) { %>
+	<% if(dc.type == "dmd") { %>
 	<tr>
 		<td class="<%= dc.className %>"><%= dc.name %></td>
 		<td class="<%= dc.classType %>"><%= dc.type %></td>
@@ -68,7 +87,61 @@ More info:
 		<td class="normal"><%= dc.updated %></td>
 		<td class="<%= dc.classVersionHeader %>"><pre><%= dc.versionHeader %></pre></td>
 	</tr>
-	<% } %>
+	<% }} %>
+
+	<!-- GDC -->
+	<a name="gdc" />
+	<tr>
+		<th rowspan="2">Name</th>
+		<th rowspan="2">Type</th>
+		<th colspan="3">Version</th>
+		<th rowspan="2">Date added/updated in this DB</th>
+		<th rowspan="2">Header</th>
+	</tr>
+	<tr>
+		<th>Compiler</th>
+		<th>Front End</th>
+		<th>LLVM</th>
+	</tr>
+	<% foreach(i, dc; var.dcompilers.get!(DCompiler[])) { %>
+	<% if(dc.type == "gdc") { %>
+	<tr>
+		<td class="<%= dc.className %>"><%= dc.name %></td>
+		<td class="<%= dc.classType %>"><%= dc.type %></td>
+		<td class="<%= dc.classCompilerVersion %>"><%= dc.compilerVersion %></td>
+		<td class="<%= dc.classFrontEndVersion %>"><%= dc.frontEndVersion %></td>
+		<td class="<%= dc.classLlvmVersion %>"><%= dc.llvmVersion %></td>
+		<td class="normal"><%= dc.updated %></td>
+		<td class="<%= dc.classVersionHeader %>"><pre><%= dc.versionHeader %></pre></td>
+	</tr>
+	<% }} %>
+
+	<!-- LDC -->
+	<a name="ldc" />
+	<tr>
+		<th rowspan="2">Name</th>
+		<th rowspan="2">Type</th>
+		<th colspan="3">Version</th>
+		<th rowspan="2">Date added/updated in this DB</th>
+		<th rowspan="2">Header</th>
+	</tr>
+	<tr>
+		<th>Compiler</th>
+		<th>Front End</th>
+		<th>LLVM</th>
+	</tr>
+	<% foreach(i, dc; var.dcompilers.get!(DCompiler[])) { %>
+	<% if(dc.type == "ldc2") { %>
+	<tr>
+		<td class="<%= dc.className %>"><%= dc.name %></td>
+		<td class="<%= dc.classType %>"><%= dc.type %></td>
+		<td class="<%= dc.classCompilerVersion %>"><%= dc.compilerVersion %></td>
+		<td class="<%= dc.classFrontEndVersion %>"><%= dc.frontEndVersion %></td>
+		<td class="<%= dc.classLlvmVersion %>"><%= dc.llvmVersion %></td>
+		<td class="normal"><%= dc.updated %></td>
+		<td class="<%= dc.classVersionHeader %>"><pre><%= dc.versionHeader %></pre></td>
+	</tr>
+	<% }} %>
 </table>
 
 </body>
